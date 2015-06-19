@@ -3,17 +3,23 @@
   <head>
     <title>How the SMS application converts to the Next-Gen Gaia Architecture</title>
     <meta charset="utf-8">
+    <link rel='stylesheet', href='mozilla/styles/fonts.css'>
     <style>
-      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
-      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
-      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
-
-      body { font-family: 'Droid Serif'; }
-      h1, h2, h3 {
-        font-family: 'Yanone Kaffeesatz';
-        font-weight: normal;
+      body {
+        font: 25px/1.8 'Open Sans', sans-serif;
+        background: url(mozilla/images/bg-sandstone-2.png) !important;
       }
-      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      h1, h2, h3, h4 {
+        margin: 0;
+      }
+      h1, h2 { font-weight: normal; }
+      h3 { font-weight: lighter; }
+      p { margin: .5em 0; }
+      .remark-code, .remark-inline-code { font-family: monospace; }
+      .dense p, .dense ul { line-height: 1.4; }
+      .remark-slides-area {
+        background: top right 10px url(mozilla/images/tab-2.png) no-repeat;
+      }
     </style>
   </head>
   <body>
@@ -147,6 +153,7 @@ evolve iteratively.
 * still in progress ([Bug 1162030](http://bugzil.la/1162030))
 
 ---
+class: dense
 
 ## Services
 ### Initial phase
