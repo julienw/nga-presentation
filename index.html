@@ -1,0 +1,207 @@
+<!doctype HTML>
+<html>
+  <head>
+    <title>How the SMS application converts to the Next-Gen Gaia Architecture</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# How the SMS application converts to the Next-Gen Gaia Architecture
+
+---
+
+## Agenda
+
+1. Introduction
+2. Goals
+3. Landing code
+4. Views and navigation
+5. Services and the threads.js library
+6. Service Worker
+
+---
+
+## Introduction
+
+The NG Architecture is designed to help us overcome current issues, especially:
+* perceived performance and latency
+* updates
+* packaged applications
+* launching speed
+* animations janks
+* memory management
+* leverage multi-core processors
+
+---
+
+## Introduction
+
+Tools we have to fix this:
+* Workers and shared workers
+* Service Worker
+* IFrames
+
+---
+
+## Goals
+
+* Split views in separate documents
+* Move the model to shared workers
+* Provide offline capability with service workers
+* Investigate various cache levels in service workers
+* Investigate how updates can work with HTTP-based apps
+* Keep master in working condition
+
+---
+
+## Landing code
+
+Different options:
+* Landing code in master
+* Landing code in a separate branch in the Gaia directory (one branch per app)
+* Landing code in a separate branch in the Gaia directory (one banch for all nga)
+* Landing code in a separate repository
+
+--
+
+We chose to land on master. We can accept performance regression but no
+functional regression.
+
+---
+
+## Views and navigation
+### The SMS application before NGA
+
+* A panel-oriented application
+* Each panel has its own JavaScript object
+* All navigation is handled in one object in JavaScript
+* Lifecycle-oriented methods
+* CSS is used to slide panels
+* No hash is used (althought it could)
+* No lazy list
+* Works in firefox using mocks
+
+---
+
+## Views and navigation
+### The SMS application before NGA: issues
+
+* When the app has a lot of data, reflows are long.
+* Some cross-view dependencies.
+* Some model is in the DOM.
+* Models, Views and Controllers are quite interweaved together.
+* CSS is not really well architectured.
+
+---
+
+## Views and navigation
+### Split views: a recipe ?
+
+1. Systematically review your CSS and decide in which view rules belong. Then
+move these rules in separate files in separate directories.
+2. Decide which javascript files belong to which view. Move these rules in
+separate directories.
+3. Kill all direct cross-view dependencies: use events.
+4. Create separate documents in these directories: first goal is to make them
+load properly in Firefox. We keep the main index.html file for users.
+5. Both the separate documents and the main index.html use the same JS and CSS
+files.
+
+---
+
+## Views and navigation
+### Split views: current status and issues
+
+* Only 2 views are split, remaining ones are still in one of them.
+* [Bug 818000](http://bugzil.la/818000) prevents switching to split views for now
+--
+ -- alternatively we can
+decide to ignore system messages.
+--
+ ;-)
+
+---
+
+## Views and navigation
+### Navigation
+
+* A navigation that works both with new style (separate
+documents) and old style (several views in one document) to make it possible to
+evolve iteratively.
+* A navigation that supports the basic panel lifecycle.
+* still in progress ([Bug 1162030](http://bugzil.la/1162030))
+
+---
+
+## Services
+### Initial phase
+
+Having a service layer is a good opportunity to think about basic methods.
+
+We looked at every action of every view and decided:
+* which data we needed
+* which action we need to perform
+
+--
+
+Then for each set of data and each action we had an operation that we organized
+by common responsability:
+
+* Conversation: returns everything related to messages and conversations,
+including all related data (eg: contact information)
+* Contacts: makes it possible to search among conctacts
+* Messaging: network-related operations.
+* ...
+
+For more information, [go and read the
+README](https://github.com/mozilla-b2g/gaia/blob/master/apps/sms/services/README.md).
+
+---
+## Services
+### Implementation
+
+Because the threads library uses plain string to call service methods, we wrap
+this in higher-level clients.
+
+We also start by creating the pure interface and only then implement the content
+as we need it, by functionality.
+
+First functionality we want to implement is loading the initial inbox.
+
+We want to be able to use the service in both split and non-split modes.
+
+---
+
+## Service Worker
+
+Not much has been done yet. Mainly some testing which was already useful to find
+bugs.
+
+---
+class: center, middle
+
+# Questions ?
+
+    </textarea>
+    <script src="js/remark-latest.min.js"></script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
+
