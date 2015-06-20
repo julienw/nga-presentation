@@ -10,9 +10,11 @@
       }
       .remark-slides-area {
         font: 25px/1.8 'Open Sans', sans-serif;
+        color: #4D4E53;
       }
       h1, h2, h3, h4 {
         margin: 0;
+        letter-spacing: -0.035em;
       }
       h1, h2 { font-weight: normal; }
       h3 { font-weight: lighter; }
@@ -21,6 +23,11 @@
       .dense p, .dense ul { line-height: 1.4; }
       .remark-slides-area {
         background: top right 10px url(mozilla/images/tab-2.png) no-repeat;
+      }
+      .inverse {
+        color: white;
+        background-color: #4D4E53;
+        text-shadow: 0 1px black;
       }
     </style>
   </head>
@@ -44,6 +51,17 @@ class: center, middle
 
 ---
 
+name: title
+layout: true
+class: center, middle, inverse
+
+---
+
+# Introduction
+
+---
+layout: false
+
 ## Introduction
 
 The NG Architecture is designed to help us overcome current issues, especially:
@@ -66,6 +84,12 @@ Tools we have to fix this:
 
 ---
 
+template: title
+
+# Goals
+
+---
+
 ## Goals
 
 * Split views in separate documents
@@ -74,6 +98,12 @@ Tools we have to fix this:
 * Investigate various cache levels in service workers
 * Investigate how updates can work with HTTP-based apps
 * Keep master in working condition
+
+---
+
+template: title
+
+# Landing code
 
 ---
 
@@ -89,6 +119,12 @@ Different options:
 
 We chose to land on master. We can accept performance regression but no
 functional regression.
+
+---
+
+template: title
+
+# Views and navigation
 
 ---
 
@@ -155,6 +191,12 @@ evolve iteratively.
 * still in progress ([Bug 1162030](http://bugzil.la/1162030))
 
 ---
+
+template: title
+
+# Services
+
+---
 class: dense
 
 ## Services
@@ -195,6 +237,35 @@ First functionality we want to implement is loading the initial inbox.
 We want to be able to use the service in both split and non-split modes.
 
 ---
+## Services
+### Use of shims to proxy mozAPI
+
+The SMS application uses several mozAPIs that are not available in workers:
+* mozMobileMessaging
+* mozContacts
+* mozActivity
+
+Special services will live in a window context (an hidden iframe) to proxy these
+calls.
+
+---
+## Services
+### What about the performance ?
+
+With all these cross-worker calls we will add up much latency.
+
+We want to reduce this latency through two ways:
+* store all the pre-digested data in a indexedDB that will be accessed by the
+first accessed worker.
+* leverage the service worker to cache the rendered views.
+
+---
+
+template: title
+
+# Service Worker
+
+---
 
 ## Service Worker
 
@@ -202,7 +273,7 @@ Not much has been done yet. Mainly some testing which was already useful to find
 bugs.
 
 ---
-class: center, middle
+template: title
 
 # Questions ?
 
