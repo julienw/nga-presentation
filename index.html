@@ -90,7 +90,9 @@ Tools we have to fix this:
 * Channel communication:
 [BroadcastChannel](https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API)
 and [Channel Messaging API](https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API).
-
+???
+IFrames could be either managed by a Content Wrapper or directly by the System
+app.
 ---
 
 template: title
@@ -294,7 +296,8 @@ We want to reduce this latency through two ways:
 * store all the pre-digested data in a indexedDB that will be accessed by the
 first accessed worker.
 * leverage the service worker to cache the rendered views.
-* [postMessage during document load is slow](https://bugzilla.mozilla.org/show_bug.cgi?id=1164539).
+
+Moreover [postMessage during document load is slow](https://bugzilla.mozilla.org/show_bug.cgi?id=1164539).
 
 ---
 
@@ -336,7 +339,7 @@ template: title
 
 # Questions ?
 
-Follow us using the [meta bug 1172906](http://mzl.la/1172906)!
+Follow us using the [meta bug 1172906](http://bugzil.la/1172906)!
 
     </textarea>
     <script src="js/remark-latest.min.js"></script>
