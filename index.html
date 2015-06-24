@@ -8,7 +8,7 @@
       body {
         background: url(mozilla/images/bg-sandstone-2.png) !important;
       }
-      .remark-slides-area {
+      .remark-slide-container {
         font: 25px/1.8 'Open Sans', sans-serif;
         color: #4D4E53;
       }
@@ -28,6 +28,9 @@
         color: white;
         background-color: #4D4E53;
         text-shadow: 0 1px black;
+      }
+      .inverse a {
+        color: #ee0;
       }
     </style>
   </head>
@@ -81,6 +84,9 @@ Tools we have to fix this:
 * Workers and shared workers
 * Service Worker
 * IFrames
+* Channel communication:
+[BroadcastChannel](https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API)
+and [Channel Messaging API](https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API)
 
 ---
 
@@ -93,10 +99,10 @@ template: title
 ## Goals
 
 * Split views in separate documents
-* Move the model to shared workers
+* Move the model and most business logic to shared workers
 * Provide offline capability with service workers
 * Investigate various cache levels in service workers
-* Investigate how updates can work with HTTP-based apps
+* Investigate how updates can work with hosted apps
 * Keep master in working condition
 
 ---
@@ -120,6 +126,8 @@ Different options:
 We chose to land on master. We can accept performance regression but no
 functional regression.
 
+We also have basically 2 versions coexisting on master.
+
 ---
 
 template: title
@@ -132,13 +140,14 @@ template: title
 ### The SMS application before NGA
 
 * A panel-oriented application
-* Each panel has its own JavaScript object
+* Each panel has its own JavaScript behavior object
 * All navigation is handled in one object in JavaScript
 * Lifecycle-oriented methods
-* CSS is used to slide panels
-* No hash is used (althought it could)
+* CSS transitions and transformations are used to slide panels
+* The URL does not change as the user navigates (although this could be done
+with the current architecture)
 * No lazy list
-* Works in firefox using mocks
+* Works in Firefox using mocks
 
 ---
 
@@ -146,10 +155,14 @@ template: title
 ### The SMS application before NGA: issues
 
 * When the app has a lot of data, reflows are long.
-* Some cross-view dependencies.
+* Some cross-view dependencies, involving sometimes complex objects.
 * Some model is in the DOM.
 * Models, Views and Controllers are quite interweaved together.
 * CSS is not really well architectured.
+* No direct access to one view (eg: we first display Inbox and only then the
+requested view).
+* Need to access several data sources at startup: messages, drafts, contacts,
+facebook contacts, settings.
 
 ---
 
@@ -164,17 +177,31 @@ separate directories.
 4. Create separate documents in these directories: first goal is to make them
 load properly in Firefox. We keep the main index.html file for users.
 5. Both the separate documents and the main index.html use the same JS and CSS
-files.
+files (except the bootstrap script).
+
+--
+
+Moreover we rely a lot on integration tests to keep master in good shape.
 
 ---
 
 ## Views and navigation
-### Split views: current status and issues
+### Split views: current status and issues ([Bug 1155507](https://bugzilla.mozilla.org/show_bug.cgi?id=1155507))
 
 * Only 2 views are split, remaining ones are still in one of them.
-* [Bug 818000](http://bugzil.la/818000) prevents switching to split views for now
+* [Bug 818000](http://bugzil.la/818000) prevents switching to split views for
+now: we don't receive system messages if the right endpoint is not loaded.
+~~
+"Only 2 views are split, remaining ones are still in one of them": this allows
+moving in an iteratively way and still use all the NGA libraries.
+
+???
+Or have view-in-iframe where top level document can handle system messages for
+us and navigation happens inside iframe.
+
 --
- -- alternatively we can
+
+Alternatively we can
 decide to ignore system messages.
 --
  ;-)
@@ -189,6 +216,12 @@ documents) and old style (several views in one document) to make it possible to
 evolve iteratively.
 * A navigation that supports the basic panel lifecycle.
 * still in progress ([Bug 1162030](http://bugzil.la/1162030))
+
+This still looks ugly until we get Navigation Transition though (more on that
+during Vivien's presentation!).
+
+???
+Demo of the current branch with Navigation.
 
 ---
 
@@ -211,7 +244,7 @@ We looked at every action of every view and decided:
 --
 
 Then for each set of data and each action we had an operation that we organized
-by common responsability:
+by common responsibility:
 
 * Conversation: returns everything related to messages and conversations,
 including all related data (eg: contact information)
@@ -224,7 +257,7 @@ README](https://github.com/mozilla-b2g/gaia/blob/master/apps/sms/services/README
 
 ---
 ## Services
-### Implementation
+### Implementation ([meta bug 1162031](https://bugzilla.mozilla.org/show_bug.cgi?id=1162031))
 
 Because the threads library uses plain string to call service methods, we wrap
 this in higher-level clients.
@@ -258,6 +291,7 @@ We want to reduce this latency through two ways:
 * store all the pre-digested data in a indexedDB that will be accessed by the
 first accessed worker.
 * leverage the service worker to cache the rendered views.
+* [postMessage during document load is slow](https://bugzilla.mozilla.org/show_bug.cgi?id=1164539).
 
 ---
 
@@ -267,15 +301,23 @@ template: title
 
 ---
 
-## Service Worker
+## Service Worker ([Bug 1172902](https://bugzilla.mozilla.org/show_bug.cgi?id=1172902))
 
 Not much has been done yet. Mainly some testing which was already useful to find
 bugs.
+
+We're still debugging bugs with Service Workers working with the app://
+protocol.
+
+See https://ng-messages.github.io/views/inbox for a WIP working in Nightly
+(with DEBUG=1 profile) and latest Spark build.
 
 ---
 template: title
 
 # Questions ?
+
+Follow us using the [meta bug 1172906](http://mzl.la/1172906)!
 
     </textarea>
     <script src="js/remark-latest.min.js"></script>
