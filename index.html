@@ -196,12 +196,12 @@ Moreover we rely a lot on integration tests to keep master in good shape.
 * Only 2 views are split, remaining ones are still in one of them.
 * [Bug 818000](http://bugzil.la/818000) prevents switching to split views for
 now: we don't receive system messages if the right endpoint is not loaded.
-~~
+
+???
 "Only 2 views are split, remaining ones are still in one of them": this allows
 moving in an iteratively way and still use all the NGA libraries.
 
-???
-Or have view-in-iframe where top level document can handle system messages for
+system messages: Or have view-in-iframe where top level document can handle system messages for
 us and navigation happens inside iframe.
 
 --
