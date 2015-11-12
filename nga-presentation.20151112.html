@@ -1,0 +1,399 @@
+<!doctype HTML>
+<html>
+  <head>
+    <title>A new architecture for our (mobile) web applications</title>
+    <meta charset="utf-8">
+    <link rel='stylesheet', href='mozilla/styles/fonts.css'>
+    <style>
+      body {
+        background: url(mozilla/images/bg-sandstone-2.png) !important;
+      }
+      .remark-slide-container {
+        font: 25px/1.8 'Open Sans', sans-serif;
+        color: #4D4E53;
+      }
+      h1, h2, h3, h4 {
+        margin: 0;
+        letter-spacing: -0.035em;
+      }
+      h1, h2 { font-weight: normal; }
+      h3 { font-weight: lighter; }
+      p { margin: .5em 0; }
+      .remark-code, .remark-inline-code { font-family: monospace; }
+      .dense p, .dense ul { line-height: 1.4; }
+      .remark-slides-area {
+        background: top right 10px url(mozilla/images/tab-2.png) no-repeat;
+      }
+      .inverse {
+        color: white;
+        background-color: #4D4E53;
+        text-shadow: 0 1px black;
+      }
+      .inverse a {
+        color: #ee0;
+      }
+      .smaller {
+        font-size: .6em;
+      }
+
+      .image img {
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# A new architecture for our (mobile) web applications
+
+---
+
+## Agenda
+
+1. Introduction
+2. Single-page apps
+3. Issues with the current approach
+4. Our tools
+5. Roadmap
+6. Views and navigation
+7. Services and the bridge.js library
+
+---
+
+name: title
+layout: true
+class: center, middle, inverse
+
+---
+
+# Introduction
+
+---
+layout: false
+
+## Introduction
+
+.image[![Modern application architecture](images/applications-architecture.png)]
+
+* Existing libraries: MVC, Flux, React
+* in Firefox OS, we stay as close as possible to the metal
+
+---
+
+## Single-page apps
+
+Firefox OS applications are normal Single-page apps:
+
+* Using a unique URL
+* Hiding/showing views, possibly changing the URL hash
+* In-memory model
+
+--
+
+... And it worked quite well so far, performance close or better to Android on
+the same device.
+
+---
+
+## Issues with the current approach
+
+The NG Architecture is designed to help us overcome current issues, especially:
+* packaged applications,
+???
+Zip archive so that we can sign to get more privileges.
+--
+
+* updates,
+???
+* certified applications
+* updates of part of the app
+--
+
+* launching speed, perceived performance and latency,
+???
+difficult to get the first rendering quickly, need to control the resource
+loading
+--
+
+* animations janks,
+???
+We need to have everything running on the GPU. Even with this it's just too easy
+to load the UI thread and miss a frame in an animation, and it turns out our
+brain is very sensitive to this.
+--
+
+* memory management,
+???
+In a Single-page app model we keep all the data for all the views in memory.
+It's extremely difficult to free up the memory once it's allocated. And it's
+extremely easy to keep a hard reference preventing the GC from running.
+--
+
+* leverage multi-core processors,
+???
+JS is inherently single-thread. It's difficult to leverage several cores. Yet
+it's especially important on mobile where we usually have several not-that-fast
+cores.
+--
+
+* adapting interface to different form factors.
+???
+Firefox OS works on low-end devices and 4K high-end TVs. Today it's difficult to
+adapt the interface to these different devices. + Theming
+
+---
+
+## Our tools
+
+Tools we have to fix this:
+* Workers and shared workers,
+???
+Not so easy to use, a lot of APIs are missing. But it's a fondamental tool to
+escape from the single-thread model of JS.
+--
+
+* Service Worker,
+???
+Complex and rich subject, let's not enter into details.
+
+* Middle-man
+* Cache
+* clear lifecycle
+
+--
+
+* IFrames,
+???
+IFrames could be either managed by a Content Wrapper or directly by the System
+app.
+
+Completely encapsulate a DOM: split reflows, split memory.
+--
+
+* Channel communication:
+[BroadcastChannel](https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API)
+and [Channel Messaging API](https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API).
+???
+BroadcastChannel allows a communication between documents even without sharing a
+common reference.
+
+MessageChannel allows a p2p communication.
+---
+
+template: title
+
+# Goals
+
+---
+
+## Roadmap
+
+* Split views in separate documents.
+* Move the model and most business logic to shared workers.
+* Provide offline capability with service workers.
+* Investigate various cache levels in service workers.
+* Investigate how updates can work with hosted apps.
+* Keep master in working condition.
+
+---
+
+template: title
+
+# Views and navigation
+
+---
+
+## Views and navigation
+### The SMS application before NGA
+
+* A panel-oriented application.
+* Each panel has its own JavaScript behavior object.
+* All navigation is handled in one object in JavaScript.
+* Lifecycle-oriented methods.
+* CSS transitions and transformations are used to slide panels.
+* The URL does not change as the user navigates (although this could be done
+with the current architecture).
+* No lazy list.
+* Works in Firefox using mocks.
+
+---
+
+## Views and navigation
+### The SMS application before NGA: issues
+
+* When the app has a lot of data, reflows are long.
+* Some cross-view dependencies, involving sometimes complex objects.
+* Some model is in the DOM.
+* Models, Views and Controllers are quite interweaved together.
+* CSS is not really well architectured.
+* No direct access to one view (eg: we first display Inbox and only then the
+requested view).
+* Need to access several data sources at startup: messages, drafts, contacts,
+facebook contacts, settings.
+
+---
+
+## Views and navigation
+### Split views: a recipe ?
+
+1. Systematically review your CSS and decide in which view rules belong. Then
+move these rules in separate files in separate directories.
+2. Decide which javascript files belong to which view. Move these rules in
+separate directories.
+3. Kill all direct cross-view dependencies: use events.
+4. Create separate documents in these directories: first goal is to make them
+load properly in Firefox. We keep the main index.html file for users.
+5. Both the separate documents and the main index.html use the same JS and CSS
+files (except the bootstrap script).
+
+--
+
+Moreover we rely a lot on integration tests to keep master in good shape.
+
+---
+
+## Views and navigation
+### Split views: current status and issues ([Bug 1155507](https://bugzilla.mozilla.org/show_bug.cgi?id=1155507))
+
+* Only 2 views are split, remaining ones are still in one of them.
+* [Bug 818000](http://bugzil.la/818000) prevents switching to split views for
+now: we don't receive system messages if the right endpoint is not loaded.
+
+???
+"Only 2 views are split, remaining ones are still in one of them": this allows
+moving in an iteratively way and still use all the NGA libraries.
+
+system messages: Or have view-in-iframe where top level document can handle system messages for
+us and navigation happens inside iframe.
+
+--
+
+Alternatively we can
+decide to ignore system messages.
+--
+ ;-)
+
+---
+
+## Views and navigation
+### Navigation
+
+* A navigation that works both with new style (separate
+documents) and old style (several views in one document) to make it possible to
+evolve iteratively.
+* A navigation that supports the basic panel lifecycle.
+
+This still looks ugly until we get Navigation Transition and prerendering though.
+
+---
+
+template: title
+
+# Services
+
+---
+class: dense
+
+## Services
+### Initial phase
+
+Having a service layer is a good opportunity to think about basic methods.
+
+We looked at every action of every view and decided:
+* which data we needed,
+* which action we need to perform.
+
+--
+
+Then for each set of data and each action we had an operation that we organized
+by common responsibility:
+
+* Conversation: returns everything related to messages and conversations,
+including all related data (eg: contact information).
+* Contacts: makes it possible to search among conctacts.
+* Messaging: network-related operations.
+* ...
+
+For more information, [go and read the
+README](https://github.com/mozilla-b2g/gaia/blob/master/apps/sms/services/README.md).
+
+---
+## Services
+### Implementation ([meta bug 1162031](https://bugzilla.mozilla.org/show_bug.cgi?id=1162031))
+
+Because the bridge library uses plain strings to call service methods, we wrap
+this in higher-level clients.
+
+We also start by creating the pure interface and only then implement the content
+as we need it, by functionality.
+
+First functionality we want to implement is loading the initial inbox.
+
+We want to be able to use the service in both split and non-split modes.
+
+---
+## Services
+### Use of shims to proxy mozAPI
+
+The SMS application uses several mozAPIs that are not available in workers:
+* mozMobileMessaging,
+* mozContacts,
+* mozActivity...
+
+Special services will live in a window context (an hidden iframe) to proxy these
+calls.
+
+---
+## Services
+### What about the performance ?
+
+With all these cross-worker calls we will add up much latency.
+
+We want to reduce this latency through two ways:
+* store all the pre-digested data in a indexedDB that will be accessed by the
+first accessed worker.
+* leverage the service worker to cache the rendered views.
+
+Moreover [postMessage during document load is slow](https://bugzilla.mozilla.org/show_bug.cgi?id=1164539).
+
+---
+## Service Workers
+
+.center[![Service worker caches](images/Gaia_Architecture_Proposal_Service_Worker_Overview.png)]
+
+* The offline cache keeps the remote files locally.
+* The custom cache allows to change some view or behavior at runtime.
+* The render cache is able to cache the generated HTML.
+
+---
+template: title
+
+# What's next ?
+
+---
+
+## What's next ?
+
+* Implement the services.
+* Implement the Service Worker part (including render cache).
+* Implement the Integrated DB.
+* Improve the performance.
+* Polish everything.
+
+---
+template: title
+
+# Questions ?
+
+Follow us using the [meta bug 1172906](http://bugzil.la/1172906)!
+
+    </textarea>
+    <script src="js/remark-latest.min.js"></script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
+
